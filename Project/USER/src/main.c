@@ -56,6 +56,59 @@
 
 
 #include "headfile.h"
+int i,j;
+
+void picGamma(uint8 in_array[][168], uint8 out_array[][168], long height, long width)
+{
+    for (int i = 0; i < height; i++){
+        for (int j = 0; j <width; j++)
+             out_array[i][j] = (uint8)pow(in_array[i][j], 1.02);
+    }
+}
+
+#define Gourd 256
+uint8 OTSU(uint8 *pic,uint16 num)
+{
+   uint16 i=0;
+   uint16 Histogram[Gourd];
+   for (i=0;i<Gourd;i++)
+       Histogram[i]=0;
+
+   for (i=0;i<num;i++)
+   {
+       Histogram[(int)pic[i]*Gourd/256]++;
+   }
+
+  float pt[Gourd],w[Gourd],u[Gourd],o[Gourd],Ut;
+
+  pt[0]=(float)Histogram[0]/num;
+  w[0]=pt[0];
+  u[0]=w[0];
+
+  for(i=1;i<Gourd;i++)
+  {
+    pt[i]=(float)Histogram[i]/num; 
+    w[i]=w[i-1]+pt[i];
+    u[i]=u[i-1]+i*pt[i];
+  };
+  Ut=u[Gourd-1];
+
+  for(i=0;i<Gourd;i++)
+  {
+    o[i]=(1-pt[i])*(u[i]*u[i]/w[i]+(u[i]-Ut)*(u[i]-Ut)/(1-w[i]));
+  };
+
+  int maxi=0;
+  float maxo=0;
+
+  for(i=0;i<Gourd;i++)
+  {
+    if(o[i]!=0x7FC0000)
+    if(o[i]>maxo){maxo=o[i];maxi=i;}
+
+  }
+  return maxi*256/Gourd;
+}
 
 
 int main(void)
@@ -86,7 +139,33 @@ int main(void)
         if(mt9v03x_csi_finish_flag)
         {      
 			mt9v03x_csi_finish_flag = 0;
-			//使用缩放显示函数，根据原始图像大小 以及设置需要显示的大小自动进行缩放或者放大显示
+						
+
+					picGamma(mt9v03x_csi_image,mt9v03x_csi_image,MT9V03X_CSI_H,MT9V03X_CSI_W);
+////OTSU Binarize
+//					uint8 thrs=OTSU(mt9v03x_csi_image[0],160*128);
+//					for(i=0;i<MT9V03X_CSI_H;i++){
+//						for(j=0;j<MT9V03X_CSI_W;j++){
+//							if(mt9v03x_csi_image[i][j]<thrs){
+//								mt9v03x_csi_image[i][j]=0;
+//							}
+//							else{
+//								mt9v03x_csi_image[i][j]=255;
+//							}	
+//						}
+//					}
+////FIXED Binarize
+					for(i=0;i<MT9V03X_CSI_H;i++){
+						for(j=0;j<MT9V03X_CSI_W;j++){
+							if(mt9v03x_csi_image[i][j]<130){
+								mt9v03x_csi_image[i][j]=0;
+							}
+							else{
+								mt9v03x_csi_image[i][j]=255;
+							}	
+						}
+					}
+					
             lcd_displayimage032_zoom(mt9v03x_csi_image[0], MT9V03X_CSI_W, MT9V03X_CSI_H, 160, 128);
       
         }
